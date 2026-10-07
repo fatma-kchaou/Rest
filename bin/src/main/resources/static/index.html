@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scolarité – Gestion des étudiants</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --primary:#2563eb; --danger:#dc2626; --ok:#16a34a; --border:#e5e7eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--primary); color:#fff; padding:18px 24px; }
+  header h1 { margin:0; font-size:1.3rem; }
+  header p { margin:4px 0 0; font-size:.85rem; opacity:.85; }
+  main { max-width:900px; margin:24px auto; padding:0 16px; display:grid; gap:20px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+  h2 { margin:0 0 12px; font-size:1.05rem; }
+  form { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  form label { display:flex; flex-direction:column; font-size:.8rem; color:var(--muted); gap:4px; }
+  input { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:.95rem; }
+  input:focus { outline:2px solid var(--primary); outline-offset:-1px; }
+  .actions { grid-column:1 / -1; display:flex; gap:8px; }
+  button { padding:8px 14px; border:0; border-radius:6px; font-size:.9rem; cursor:pointer; background:var(--primary); color:#fff; }
+  button.secondary { background:#e5e7eb; color:var(--text); }
+  button.danger { background:var(--danger); }
+  button.small { padding:4px 10px; font-size:.8rem; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; }
+  td.row-actions { display:flex; gap:6px; }
+  .empty { color:var(--muted); text-align:center; padding:18px; }
+  #msg { padding:10px 12px; border-radius:6px; font-size:.9rem; display:none; }
+  #msg.ok { display:block; background:#dcfce7; color:#166534; }
+  #msg.err { display:block; background:#fee2e2; color:#991b1b; }
+  @media (max-width:640px) { form { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Service de scolarité</h1>
+  <p>Gestion des étudiants — API REST <code>/api/v1/students</code></p>
+</header>
+<main>
+  <div id="msg" role="status"></div>
+
+  <section class="card">
+    <h2 id="formTitle">Ajouter un étudiant</h2>
+    <form id="studentForm" novalidate>
+      <input type="hidden" id="studentId">
+      <label>Prénom <input id="firstName" required></label>
+      <label>Nom <input id="lastName" required></label>
+      <label>Email <input id="email" type="text" placeholder="prenom@exemple.com"></label>
+      <div class="actions">
+        <button type="submit" id="submitBtn">Enregistrer</button>
+        <button type="button" class="secondary" id="cancelBtn" hidden>Annuler la modification</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Liste des étudiants</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Prénom</th><th>Nom</th><th>Email</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const API = '/api/v1/students';
+const $ = id => document.getElementById(id);
+let msgTimer;
+
+function showMsg(text, ok = true) {
+  const el = $('msg');
+  el.textContent = text;
+  el.className = ok ? 'ok' : 'err';
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+}
+
+async function request(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    let detail = 'Erreur ' + res.status;
+    try {
+      const body = await res.json();
+      if (body.error) detail = body.error;
+      if (body.details) {
+        const names = { firstName: 'Prénom', lastName: 'Nom', email: 'Email' };
+        const parts = Object.entries(body.details).map(([f, m]) => (names[f] || f) + ' : ' + m);
+        if (parts.length) detail += ' — ' + parts.join(' ; ');
+      }
+    } catch (e) {}
+    throw new Error(detail);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function cell(text) {
+  const td = document.createElement('td');
+  td.textContent = text ?? '';
+  return td;
+}
+
+async function load() {
+  const tbody = $('tbody');
+  try {
+    const students = await request(API);
+    tbody.innerHTML = '';
+    if (students.length === 0) {
+      const tr = document.createElement('tr');
+      const td = cell('Aucun étudiant pour le moment.');
+      td.colSpan = 5; td.className = 'empty';
+      tr.appendChild(td); tbody.appendChild(tr);
+      return;
+    }
+    for (const s of students) {
+      const tr = document.createElement('tr');
+      tr.append(cell(s.id), cell(s.firstName), cell(s.lastName), cell(s.email));
+      const actions = document.createElement('td');
+      actions.className = 'row-actions';
+      const edit = document.createElement('button');
+      edit.textContent = 'Modifier'; edit.className = 'small secondary';
+      edit.onclick = () => startEdit(s);
+      const del = document.createElement('button');
+      del.textContent = 'Supprimer'; del.className = 'small danger';
+      del.onclick = () => remove(s);
+      actions.append(edit, del);
+      tr.appendChild(actions);
+      tbody.appendChild(tr);
+    }
+  } catch (e) { showMsg(e.message, false); }
+}
+
+function startEdit(s) {
+  $('studentId').value = s.id;
+  $('firstName').value = s.firstName;
+  $('lastName').value = s.lastName;
+  $('email').value = s.email ?? '';
+  $('formTitle').textContent = 'Modifier l\'étudiant n° ' + s.id;
+  $('cancelBtn').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+  $('studentForm').reset();
+  $('studentId').value = '';
+  $('formTitle').textContent = 'Ajouter un étudiant';
+  $('cancelBtn').hidden = true;
+}
+
+async function remove(s) {
+  if (!confirm('Supprimer ' + s.firstName + ' ' + s.lastName + ' ?')) return;
+  try {
+    await request(API + '/' + s.id, { method: 'DELETE' });
+    showMsg('Étudiant supprimé.');
+    if ($('studentId').value === String(s.id)) resetForm();
+    load();
+  } catch (e) { showMsg(e.message, false); load(); }
+}
+
+$('studentForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const id = $('studentId').value;
+  const payload = {
+    firstName: $('firstName').value.trim(),
+    lastName: $('lastName').value.trim(),
+    email: $('email').value.trim() || null
+  };
+  try {
+    await request(id ? API + '/' + id : API, {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showMsg(id ? 'Étudiant mis à jour.' : 'Étudiant créé.');
+    resetForm();
+    load();
+  } catch (e) { showMsg(e.message, false); }
+});
+
+$('cancelBtn').addEventListener('click', resetForm);
+load();
+</script>
+</body>
+</html>

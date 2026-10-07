@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIT – Gestion des étudiants</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { 
+    --bg: #f8fafc; 
+    --surface: #ffffff; 
+    --text: #1e293b; 
+    --muted: #64748b; 
+    --primary: #003366; /* Bleu IIT */
+    --primary-hover: #002244; 
+    --accent: #f97316; /* Orange dynamique style IIT */
+    --accent-hover: #ea580c;
+    --danger: #ef4444; 
+    --danger-hover: #dc2626; 
+    --border: #e2e8f0; 
+    --radius: 8px;
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  
+  body { 
+    margin: 0; 
+    font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+    line-height: 1.5;
+  }
+
+  header { 
+    background: var(--primary); 
+    color: #fff;
+    border-bottom: 4px solid var(--accent);
+    padding: 24px 32px; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .header-brand h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+  .header-brand p { margin: 4px 0 0; font-size: .85rem; opacity: 0.8; }
+  header code { background: rgba(255, 255, 255, 0.15); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: #fff; }
+
+  main { max-width: 1100px; margin: 32px auto; padding: 0 24px; display: grid; gap: 24px; }
+
+  .card { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: var(--radius); 
+    padding: 24px; 
+    box-shadow: var(--shadow); 
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--primary); }
+  .badge-count { background: #eff6ff; color: var(--primary); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; border: 1px solid #dbeafe; }
+
+  form { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 16px; align-items: flex-end; }
+  form label { display: flex; flex-direction: column; font-size: .8rem; font-weight: 500; color: var(--muted); gap: 6px; }
+  
+  input { 
+    padding: 10px 14px; 
+    border: 1px solid var(--border); 
+    border-radius: 6px; 
+    font-size: .9rem; 
+    color: var(--text);
+    background: #fff;
+    transition: all 0.2s;
+  }
+  
+  input:focus { 
+    outline: none; 
+    border-color: var(--accent); 
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); 
+  }
+
+  .actions { display: flex; gap: 8px; }
+
+  button { 
+    padding: 10px 18px; 
+    border: 0; 
+    border-radius: 6px; 
+    font-size: .9rem; 
+    font-weight: 600;
+    cursor: pointer; 
+    background: var(--accent); 
+    color: #fff; 
+    transition: background 0.2s, transform 0.1s;
+    height: 40px;
+    white-space: nowrap;
+  }
+  
+  button:hover { background: var(--accent-hover); }
+  button:active { transform: translateY(1px); }
+  
+  button.secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { background: #e2e8f0; }
+  
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: var(--danger-hover); }
+  
+  button.small { padding: 5px 12px; font-size: .8rem; height: auto; }
+
+  .table-wrapper { width: 100%; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  
+  th { 
+    color: var(--muted); 
+    font-weight: 600; 
+    font-size: .75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+    background: #f8fafc; 
+  }
+
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: #f8fafc; }
+
+  td.id-col { font-family: monospace; color: var(--muted); font-weight: 600; }
+  td.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .empty { color: var(--muted); text-align: center; padding: 32px !important; }
+
+  #msg { 
+    padding: 12px 16px; 
+    border-radius: 6px; 
+    font-size: .9rem; 
+    display: none; 
+    font-weight: 500;
+  }
+  #msg.ok { display: block; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  #msg.err { display: block; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+  @media (max-width: 850px) { 
+    form { grid-template-columns: 1fr; } 
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <h1>IIT – Gestion des Étudiants</h1>
+    <p>Institut International de Technologie</p>
+  </div>
+  <div>
+    <code>API: /api/v1/students</code>
+  </div>
+</header>
+
+<main>
+  <div id="msg" role="status"></div>
+
+  <section class="card">
+    <div class="card-header">
+      <h2 id="formTitle">Ajouter un étudiant</h2>
+    </div>
+    <form id="studentForm" novalidate>
+      <input type="hidden" id="studentId">
+      <label>Prénom <input id="firstName" placeholder="ex. Fatma" required></label>
+      <label>Nom <input id="lastName" placeholder="ex. Kchaou" required></label>
+      <label>Email <input id="email" type="text" placeholder="fatma.kchaou@gmail.com"></label>
+      <div class="actions">
+        <button type="submit" id="submitBtn">Enregistrer</button>
+        <button type="button" class="secondary" id="cancelBtn" hidden>Annuler</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2>Annuaire des étudiants</h2>
+      <span class="badge-count" id="countBadge">0 étudiant</span>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Prénom</th>
+            <th>Nom</th>
+            <th>Email</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const API = '/api/v1/students';
+const $ = id => document.getElementById(id);
+let msgTimer;
+
+function showMsg(text, ok = true) {
+  const el = $('msg');
+  el.textContent = text;
+  el.className = ok ? 'ok' : 'err';
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+}
+
+async function request(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    let detail = 'Erreur ' + res.status;
+    try {
+      const body = await res.json();
+      if (body.error) detail = body.error;
+      if (body.details) {
+        const names = { firstName: 'Prénom', lastName: 'Nom', email: 'Email' };
+        const parts = Object.entries(body.details).map(([f, m]) => (names[f] || f) + ' : ' + m);
+        if (parts.length) detail += ' — ' + parts.join(' ; ');
+      }
+    } catch (e) {}
+    throw new Error(detail);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function cell(text, isId = false) {
+  const td = document.createElement('td');
+  td.textContent = text ?? '—';
+  if (isId) td.className = 'id-col';
+  if (!text) td.style.color = 'var(--muted)';
+  return td;
+}
+
+async function load() {
+  const tbody = $('tbody');
+  try {
+    const students = await request(API);
+    tbody.innerHTML = '';
+    
+    const count = students.length;
+    $('countBadge').textContent = count + (count > 1 ? ' étudiants' : ' étudiant');
+
+    if (count === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.textContent = 'Aucun étudiant enregistré pour le moment.';
+      td.colSpan = 5; td.className = 'empty';
+      tr.appendChild(td); tbody.appendChild(tr);
+      return;
+    }
+    for (const s of students) {
+      const tr = document.createElement('tr');
+      tr.append(cell(s.id, true), cell(s.firstName), cell(s.lastName), cell(s.email));
+      
+      const actions = document.createElement('td');
+      actions.className = 'row-actions';
+      
+      const edit = document.createElement('button');
+      edit.textContent = 'Modifier'; edit.className = 'small secondary';
+      edit.onclick = () => startEdit(s);
+      
+      const del = document.createElement('button');
+      del.textContent = 'Supprimer'; del.className = 'small danger';
+      del.onclick = () => remove(s);
+      
+      actions.append(edit, del);
+      tr.appendChild(actions);
+      tbody.appendChild(tr);
+    }
+  } catch (e) { 
+    showMsg(e.message, false); 
+    $('countBadge').textContent = '0 étudiant';
+  }
+}
+
+function startEdit(s) {
+  $('studentId').value = s.id;
+  $('firstName').value = s.firstName;
+  $('lastName').value = s.lastName;
+  $('email').value = s.email ?? '';
+  $('formTitle').textContent = 'Modifier l\'étudiant n° ' + s.id;
+  $('cancelBtn').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+  $('studentForm').reset();
+  $('studentId').value = '';
+  $('formTitle').textContent = 'Ajouter un étudiant';
+  $('cancelBtn').hidden = true;
+}
+
+async function remove(s) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ' + s.firstName + ' ' + s.lastName + ' ?')) return;
+  try {
+    await request(API + '/' + s.id, { method: 'DELETE' });
+    showMsg('Étudiant supprimé avec succès.');
+    if ($('studentId').value === String(s.id)) resetForm();
+    load();
+  } catch (e) { showMsg(e.message, false); load(); }
+}
+
+$('studentForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const id = $('studentId').value;
+  const payload = {
+    firstName: $('firstName').value.trim(),
+    lastName: $('lastName').value.trim(),
+    email: $('email').value.trim() || null
+  };
+  try {
+    await request(id ? API + '/' + id : API, {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showMsg(id ? 'Étudiant mis à jour avec succès.' : 'Étudiant créé avec succès.');
+    resetForm();
+    load();
+  } catch (e) { showMsg(e.message, false); }
+});
+
+$('cancelBtn').addEventListener('click', resetForm);
+load();
+</script>
+</body>
+</html>
